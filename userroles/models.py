@@ -42,6 +42,7 @@ def set_user_role(user, role, profile=None):
         profile.child = str(profile.__class__.__name__).lower()
 
     else:
+
         try:
             profile = UserRole.objects.get(user=user)
         except UserRole.DoesNotExist:

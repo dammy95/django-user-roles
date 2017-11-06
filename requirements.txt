@@ -1,2 +1,2 @@
-Django
-milkman
+django==1.11.7
+model-mommy==1.4.0

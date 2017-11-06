@@ -2,9 +2,7 @@
 # Note: If we move to Django 1.4, we can use proper test settings instead.
 
 from django.conf import settings
-from django.db.models import loading
 from django.test import TestCase
-from django.core.management.commands import syncdb
 
 NO_SETTING = ('!', None)
 
@@ -25,13 +23,6 @@ class TestSettingsManager(object):
             self._original_settings.setdefault(k, getattr(settings, k,
                                                           NO_SETTING))
             setattr(settings, k, v)
-        if 'INSTALLED_APPS' in kwargs:
-            self.syncdb()
-
-    def syncdb(self):
-        loading.cache.loaded = False
-        # Use this, rather than call_command, or 'south' will screw with us.
-        syncdb.Command().execute(verbosity=0)
 
     def revert(self):
         for k, v in self._original_settings.iteritems():
@@ -39,8 +30,6 @@ class TestSettingsManager(object):
                 delattr(settings, k)
             else:
                 setattr(settings, k, v)
-        if 'INSTALLED_APPS' in self._original_settings:
-            self.syncdb()
         self._original_settings = {}
 
 

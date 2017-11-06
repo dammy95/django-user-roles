@@ -3,11 +3,14 @@
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from milkman.dairy import milkman
-from userroles.models import set_user_role, UserRole
-from userroles.testapp.models import TestModeratorProfile
-from userroles.utils import SettingsTestCase
+from django.core.urlresolvers import reverse
+
+from model_mommy import mommy
+
+from testproject.testapp.models import TestModeratorProfile
 from userroles import Roles
+from userroles.models import UserRole, set_user_role
+from userroles.utils import SettingsTestCase
 
 # Test setup
 
@@ -18,7 +21,7 @@ roles_config = (
 )
 
 installed_apps_config = list(settings.INSTALLED_APPS)
-installed_apps_config.append('userroles.testapp')
+installed_apps_config.append('testproject.testapp')
 
 roles = Roles(roles_config)
 
@@ -28,8 +31,8 @@ class TestCase(SettingsTestCase):
         super(TestCase, self).setUp()
         self.settings(
             INSTALLED_APPS=installed_apps_config,
-            ROOT_URLCONF='userroles.testapp.urls',
-            USER_ROLES=roles_config
+            ROOT_URLCONF='userroles.urls',
+            USER_ROLES=roles_config,
         )
         self.restore_roles = UserRole._valid_roles
         UserRole._valid_roles = roles
@@ -69,7 +72,7 @@ class UserRoleTests(TestCase):
 
     def setUp(self):
         super(UserRoleTests, self).setUp()
-        self.user = milkman.deliver(User)
+        self.user = mommy.make(User)
         set_user_role(self.user, roles.manager)
 
     def test_role_comparison(self):
@@ -107,6 +110,7 @@ class UserRoleTests(TestCase):
         Set a role that does not take a profile.
         """
         set_user_role(self.user, roles.client)
+        self.user.role.refresh_from_db()
         self.assertTrue(self.user.role.is_client)
 
     def test_set_role_with_profile(self):
@@ -117,56 +121,24 @@ class UserRoleTests(TestCase):
         self.assertTrue(self.user.role.is_moderator)
         self.assertEquals(self.user.role.profile.stars, 5)
 
-    # def test_set_role_without_profile_incorrectly(self):
-    #     """
-    #     Attempt to set a profile on a role that does not take a profile.
-    #     """
-    #     args = (self.user, roles.client, ModeratorProfile())
-    #     self.assertRaises(ValueError, set_user_role, *args)
-
-    # def test_set_role_with_profile_incorrectly(self):
-    #     """
-    #     Attempt to set a role that uses profiles, without setting a profile.
-    #     """
-    #     args = (self.user, roles.moderator, )
-    #     self.assertRaises(ValueError, set_user_role, *args)
-
-    # def test_set_role_with_profile_using_wrong_profile(self):
-    #     """
-    #     Attempt to set a role that uses profiles, without setting a profile.
-    #     """
-    #     args = (self.user, roles.moderator, DummyClass())
-    #     self.assertRaises(ValueError, set_user_role, *args)
-
 
 # Tests for user role view decorators
 
 class ViewTests(TestCase):
     def setUp(self):
         super(ViewTests, self).setUp()
-        self.user = milkman.deliver(User)
+        self.user = mommy.make(User)
         self.user.set_password('password')
         self.user.save()
+        self.url = reverse('testapp:manager_or_moderator')
         self.client.login(username=self.user.username, password='password')
 
     def test_get_allowed_view(self):
         set_user_role(self.user, roles.manager)
-        resp = self.client.get('/manager_or_moderator')
+        resp = self.client.get(self.url)
         self.assertEquals(resp.status_code, 200)
 
     def test_get_disallowed_view(self):
         set_user_role(self.user, roles.client)
-        resp = self.client.get('/manager_or_moderator')
+        resp = self.client.get(self.url)
         self.assertEquals(resp.status_code, 302)
-
-
-# Tests for using a custom UserRole class
-
-# class UserRoleClassSettingTests(TestCase):
-#     def setUp(self):
-#         super(UserRoleClassSettingTests, self).setUp()
-#         self.user = milkman.deliver(User)
-#         set_user_role(self.user, roles.moderator)
-
-#     def test_role_has_custom_property(self):
-#         self.assertTrue(self.user.role.can_moderate_discussions)
