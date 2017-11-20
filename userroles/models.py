@@ -27,7 +27,7 @@ class UserRole(models.Model):
         raise AttributeError("'%s' object has no attribute '%s'" %
                               (self.__class__.__name__, name))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
