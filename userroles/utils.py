@@ -19,7 +19,7 @@ class TestSettingsManager(object):
         self._original_settings = {}
 
     def set(self, **kwargs):
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             self._original_settings.setdefault(k, getattr(settings, k,
                                                           NO_SETTING))
             setattr(settings, k, v)
